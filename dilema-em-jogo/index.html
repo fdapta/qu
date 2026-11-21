@@ -169,7 +169,16 @@ select {
   font-size: .9rem;
 }
 .prazo strong { color: var(--texto); font-size: 1.37rem; display: block; font-variant-numeric: tabular-nums; }
-.tabuleiro { grid-template-columns: minmax(0, 1.9fr) minmax(245px, 1fr); align-items: start; }
+.tabuleiro {
+  grid-template-columns: minmax(0, 1.9fr) minmax(278px, 1fr);
+  grid-template-areas: "jogadas placar" "jogadas lateral";
+  grid-template-rows: auto 1fr;
+  align-items: start;
+}
+.jogadas, .fechamento { grid-area: jogadas; }
+.lateral { grid-area: lateral; }
+.placar-pac { grid-area: placar; min-width: 0; }
+.tabuleiro-final { grid-template-areas: "jogadas placar"; grid-template-rows: auto; }
 .jogadas, .lateral { display: grid; gap: 13px; min-width: 0; }
 .jogada h2, .fechamento h2 { font-size: clamp(1.25rem, 2.2vw, 1.55rem); line-height: 1.21; }
 .opcoes { display: grid; gap: 9px; margin-top: 13px; }
@@ -223,6 +232,35 @@ summary span { color: var(--suave); margin-left: 5px; font-weight: 400; }
 .percurso li[aria-current="step"] .pentagono { background: #625476; }
 .percurso .pac .pentagono { background: var(--azul-forte); color: #101a34; }
 .percurso li small { display: block; color: var(--suave); font-size: .79rem; line-height: 1.2; margin-top: 3px; }
+.cabecalho-placar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.cabecalho-placar h2 { font-size: 1.2rem; line-height: 1.25; }
+.total-pac { color: var(--azul); font-size: 1.4rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.total-pac span { color: var(--suave); font-size: .92rem; }
+.pentagonos-pac { display: grid; gap: 8px; }
+.painel-pentagono {
+  display: grid;
+  grid-template-columns: clamp(86px, 9vw, 110px) minmax(0, 1fr);
+  align-items: center;
+  min-width: 0;
+  padding: 8px;
+}
+.painel-pentagono svg { width: 100%; display: block; }
+.painel-pentagono h3 { display: flex; justify-content: space-between; gap: 6px; font-size: .97rem; line-height: 1.25; }
+.painel-pentagono h3 span { color: var(--azul); white-space: nowrap; }
+.painel-pentagono ul { display: flex; flex-wrap: wrap; gap: 2px 8px; margin: 4px 0 0; padding: 0; list-style: none; }
+.painel-pentagono li { color: var(--suave); font-size: .81rem; }
+.painel-pentagono li[data-pac="true"] { color: #c6dfff; }
+.painel-pentagono .setor { fill: #202b43; stroke: #425579; }
+.painel-pentagono .setor[data-pac="true"] { fill: #306fd0; stroke: #83b8ff; }
+.painel-pentagono .rede { fill: none; stroke: #637ba2; stroke-width: 1.3; }
+.painel-pentagono[data-completo="true"] { background: linear-gradient(112deg, #213c6a, #19243a); border-color: #679afa; }
+.painel-pentagono[data-completo="true"] .rede { stroke: #a3ceff; stroke-width: 2; }
 .fala {
   padding: 11px;
   display: flex;
@@ -250,10 +288,19 @@ summary span { color: var(--suave); margin-left: 5px; font-weight: 400; }
 
 @media (max-width: 740px) {
   .perfis, .tabuleiro { grid-template-columns: minmax(0, 1fr); }
+  .tabuleiro { grid-template-rows: auto; grid-template-areas: "placar" "jogadas" "lateral"; }
+  .tabuleiro-final { grid-template-areas: "placar" "jogadas"; }
+  .pentagonos-pac { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .painel-pentagono { display: flex; flex-direction: column; justify-content: start; text-align: center; }
+  .painel-pentagono svg { width: min(100%, 106px); }
+  .painel-pentagono h3, .painel-pentagono ul { justify-content: center; flex-wrap: wrap; }
   .lateral { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
 @media (max-width: 470px) {
   .partida-abertura, .entrada { align-items: flex-start; flex-direction: column; }
+  .painel-pentagono { padding: 4px 4px 8px; }
+  .painel-pentagono h3 { font-size: .86rem; }
+  .painel-pentagono ul { display: none; }
   .lateral, .campos { grid-template-columns: minmax(0, 1fr); }
   .entrada .botao, .controles .botao { width: 100%; }
 }
@@ -321,6 +368,7 @@ summary span { color: var(--suave); margin-left: 5px; font-weight: 400; }
         </div>
       </div>
       <div class="tabuleiro">
+        <section class="placar-pac" id="placar-pac" aria-label="Pentágonos da dupla"></section>
         <div class="jogadas">
           <section class="painel jogada" id="jogada" aria-label="Decisão da rodada"></section>
           <details class="painel rastro" id="rastro" hidden>
@@ -333,7 +381,7 @@ summary span { color: var(--suave); margin-left: 5px; font-weight: 400; }
           <section class="painel percurso" aria-labelledby="titulo-percurso">
             <h2 id="titulo-percurso">State Hanger Tree</h2>
             <ol id="caminho"></ol>
-            <p class="nota">O pentágono azul registra um Padrão de Alinhamento Coerente no Resultado Projetado daquele dilema.</p>
+            <p class="nota">Um nó azul indica que a projeção atendeu às condições daquele dilema.</p>
           </section>
         </aside>
       </div>
@@ -343,10 +391,13 @@ summary span { color: var(--suave); margin-left: 5px; font-weight: 400; }
         <h1 id="titulo-desfecho" tabindex="-1">Fim deste percurso</h1>
         <p id="situacao-final"></p>
       </div>
-      <div class="painel fechamento">
-        <h2>O que mudou a cada decisão</h2>
-        <ol class="desfecho-lista" id="desfecho-lista"></ol>
-        <button class="botao primario" id="repetir" type="button">Jogar com outro perfil</button>
+      <div class="tabuleiro tabuleiro-final">
+        <section class="placar-pac" id="placar-final" aria-label="Pentágonos da dupla"></section>
+        <div class="painel fechamento">
+          <h2>O que mudou a cada decisão</h2>
+          <ol class="desfecho-lista" id="desfecho-lista"></ol>
+          <button class="botao primario" id="repetir" type="button">Jogar com outro perfil</button>
+        </div>
       </div>
     </section>
   </main>
@@ -378,6 +429,22 @@ const CRITERIOS_SEGUINTES = [
   "Preservar um rastro consultável",
   "Evitar um débito duplicado",
   "Proteger o prazo desta etapa"
+];
+
+const EIXOS_ATOR = [
+  ["visao", "Visão 360"],
+  ["resiliencia", "Resiliência"],
+  ["adaptabilidade", "Adaptabilidade"],
+  ["controle", "Controle emocional"],
+  ["sincronicidade", "Sincronicidade"]
+];
+
+const EIXOS_PROJECAO = [
+  ["estado", "Estado"],
+  ["condicao", "Condição"],
+  ["referencia", "Referência"],
+  ["preservacao", "Preservação"],
+  ["relacao", "Relação"]
 ];
 
 const INICIO = {
@@ -650,6 +717,49 @@ function confirmar(partida, segueParceiro) {
   partida.fase = "consequencia";
 }
 
+function eixosDaProposta(proposta, decisao, retomou) {
+  const [rastro, condicao] = proposta.atende;
+  return {
+    visao: rastro && condicao,
+    resiliencia: retomou && rastro,
+    adaptabilidade: retomou && condicao,
+    controle: retomou && rastro && condicao && decisao.acordo,
+    sincronicidade: decisao.acordo && decisao.pac
+  };
+}
+
+function placar(historico) {
+  const jogador = new Set();
+  const parceiro = new Set();
+  const projecao = new Set();
+  function reconhecer(ativos, eixos) {
+    for (const [eixo, alinhado] of Object.entries(eixos)) {
+      if (alinhado) ativos.add(eixo);
+    }
+  }
+
+  historico.forEach((decisao, indice) => {
+    // Quando há acordo, a proposta seguida é a contribuição reconhecida da dupla.
+    const propostaJogador = decisao.acordo ? decisao.opcao : decisao.propostaJogador;
+    reconhecer(jogador, eixosDaProposta(propostaJogador, decisao, indice > 0));
+    reconhecer(parceiro, eixosDaProposta(decisao.propostaParceiro, decisao, indice > 0));
+  });
+
+  const ultima = historico.at(-1);
+  if (ultima) {
+    const [rastro, condicao, prazo] = ultima.opcao.atende;
+    reconhecer(projecao, {
+      estado: Boolean(ultima.opcao.efeito),
+      condicao,
+      referencia: rastro,
+      preservacao: prazo,
+      relacao: ultima.pac
+    });
+  }
+
+  return { jogador, parceiro, projecao, total: jogador.size + parceiro.size + projecao.size };
+}
+
 const el = id => document.getElementById(id);
 const escolhaAvatar = { jogador: "iris", parceiro: "lia" };
 let partida = null;
@@ -851,6 +961,57 @@ function desenharRastro() {
       </li>
     `;
   }).join("");
+  desenharPlacar(el("placar-pac"));
+}
+
+function desenharPentagono(eixos, ativos) {
+  const centro = [61, 61];
+  const vertices = eixos.map((_, indice) => {
+    const angulo = (2 * Math.PI * indice / eixos.length) - Math.PI / 2;
+    return [centro[0] + 48 * Math.cos(angulo), centro[1] + 48 * Math.sin(angulo)];
+  });
+  const meio = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const coordenadas = pontos => pontos.map(ponto => ponto.map(valor => valor.toFixed(2)).join(",")).join(" ");
+  const setores = vertices.map((vertice, indice) => {
+    const anterior = vertices.at(indice - 1);
+    const seguinte = vertices[(indice + 1) % vertices.length];
+    const pontos = coordenadas([centro, meio(anterior, vertice), vertice, meio(vertice, seguinte)]);
+    return `<polygon class="setor" data-pac="${ativos.has(eixos[indice][0])}" points="${pontos}"/>`;
+  }).join("");
+  return `<svg viewBox="0 0 122 122" aria-hidden="true">${setores}<polygon class="rede" points="${coordenadas(vertices)}"/></svg>`;
+}
+
+function desenharPlacar(alvo) {
+  const { jogador, parceiro, projecao, total } = placar(partida.historico);
+  const paineis = [
+    { titulo: `${AVATARES[partida.jogador]} · Você`, eixos: EIXOS_ATOR, ativos: jogador },
+    { titulo: `${AVATARES[partida.parceiro]} · Parceiro`, eixos: EIXOS_ATOR, ativos: parceiro },
+    { titulo: "Resultado Projetado", eixos: EIXOS_PROJECAO, ativos: projecao }
+  ];
+  alvo.innerHTML = `
+    <header class="cabecalho-placar">
+      <div>
+        <h2>Placar da dupla</h2>
+        <p class="nota">Padrão de Alinhamento Coerente (PAC)</p>
+      </div>
+      <strong class="total-pac">${total} <span>/ 15</span></strong>
+    </header>
+    <div class="pentagonos-pac">
+      ${paineis.map(({ titulo, eixos, ativos }) => {
+        const reconhecidos = eixos.filter(([chave]) => ativos.has(chave)).map(([, nome]) => nome);
+        const descricao = reconhecidos.length ? `. Em azul: ${reconhecidos.join(", ")}.` : "";
+        return `<section class="painel painel-pentagono" data-completo="${ativos.size === eixos.length}"
+            aria-label="${titulo}, ${ativos.size} de ${eixos.length} setores azuis${descricao}">
+          ${desenharPentagono(eixos, ativos)}
+          <div>
+            <h3>${titulo} <span>${ativos.size}/${eixos.length}</span></h3>
+            <ul>${eixos.map(([chave, nome]) => `<li data-pac="${ativos.has(chave)}">
+              <span aria-hidden="true">${ativos.has(chave) ? "✓" : "○"}</span> ${nome}</li>`).join("")}</ul>
+          </div>
+        </section>`;
+      }).join("")}
+    </div>
+  `;
 }
 
 function continuar() {
@@ -858,6 +1019,7 @@ function continuar() {
   if (partida.etapa === 3) {
     el("situacao-final").textContent = anterior.opcao.efeito;
     el("desfecho-lista").innerHTML = partida.historico.map(resumo).join("");
+    desenharPlacar(el("placar-final"));
     ver("desfecho", "titulo-desfecho");
     return;
   }
